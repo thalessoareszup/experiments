@@ -78,6 +78,7 @@ mini = "minisweagent.run.mini:app"
 mini-swe-agent = "minisweagent.run.mini:app"
 mini-extra = "minisweagent.run.mini_extra:main"
 mini-e= "minisweagent.run.mini_extra:main"
+stk-mini = "minisweagent.run.stk:app"
 
 [tool.setuptools]
 include-package-data = true

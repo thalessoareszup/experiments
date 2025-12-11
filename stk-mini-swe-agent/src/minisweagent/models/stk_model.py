@@ -19,7 +19,7 @@ logger = logging.getLogger("stk_model")
 
 @dataclass
 class StkModelConfig:
-    model_name: str = os.getenv("STK_AGENT_ID") # Using model_name here as the agent ID
+    model_name: str  # Agent ID (required)
     model_kwargs: dict[str, Any] = field(default_factory=dict)
     client_id: str | None = os.getenv("STK_CLIENT_ID")
     client_secret: str | None = os.getenv("STK_CLIENT_SECRET")
@@ -34,13 +34,15 @@ class StkModel:
         self.n_calls = 0
         self._token = None
 
+        if not self.config.model_name:
+            raise ValueError("Agent ID (model_name) is required.")
         if not self.config.client_id:
             raise ValueError("STK_CLIENT_ID is required.")
         if not self.config.client_secret:
             raise ValueError("STK_CLIENT_SECRET is required.")
         if not self.config.realm:
             raise ValueError("STK_REALM is required.")
-        
+
         self.conversation_id = None
 
     def _get_token(self) -> str:

@@ -19,7 +19,7 @@ from minisweagent.agents.interactive import InteractiveAgent
 from minisweagent.agents.interactive_textual import TextualAgent
 from minisweagent.config import builtin_config_dir, get_config_path
 from minisweagent.environments.local import LocalEnvironment
-from minisweagent.models import get_model
+from minisweagent.models.stk_model import StkModel, StkModelConfig
 from minisweagent.run.extra.config import configure_if_first_time
 from minisweagent.run.utils.save import save_traj
 from minisweagent.utils.log import logger
@@ -38,19 +38,36 @@ The --model argument is used as the Agent ID.
 [/not dim]
 """
 
+
 @app.command(help=_HELP_TEXT)
 def main(
-    visual: bool = typer.Option(False, "-v", "--visual", help="Toggle (pager-style) UI (Textual) depending on the MSWEA_VISUAL_MODE_DEFAULT environment setting",),
-    agent_id: str | None = typer.Option(None, "-m", "--model", "--agent-id", help="Stackspot Agent ID (Slug)",),
+    agent_id: str = typer.Option(..., "-m", "--model", "--agent-id", help="Stackspot Agent ID (Slug)"),
+    visual: bool = typer.Option(
+        False,
+        "-v",
+        "--visual",
+        help="Toggle (pager-style) UI (Textual) depending on the MSWEA_VISUAL_MODE_DEFAULT environment setting",
+    ),
     task: str | None = typer.Option(None, "-t", "--task", help="Task/problem statement", show_default=False),
     yolo: bool = typer.Option(False, "-y", "--yolo", help="Run without confirmation"),
     cost_limit: float | None = typer.Option(None, "-l", "--cost-limit", help="Cost limit. Set to 0 to disable."),
     config_spec: Path = typer.Option(DEFAULT_CONFIG, "-c", "--config", help="Path to config file"),
-    output: Path | None = typer.Option(DEFAULT_OUTPUT, "-o", "--output", help="Output trajectory file"),
-    exit_immediately: bool = typer.Option(False, "--exit-immediately", help="Exit immediately when the agent wants to finish instead of prompting.", rich_help_panel="Advanced"),
+    output_path: str | None = typer.Option(None, "-o", "--output", help="Output trajectory file"),
+    exit_immediately: bool = typer.Option(
+        False,
+        "--exit-immediately",
+        help="Exit immediately when the agent wants to finish instead of prompting.",
+        rich_help_panel="Advanced",
+    ),
 ) -> Any:
     configure_if_first_time()
-    config_path = get_config_path(config_spec)
+
+    print()
+    # Handle default values and convert to Path
+    config_path_input = Path(config_spec)
+    output = Path(output_path) if output_path else DEFAULT_OUTPUT
+
+    config_path = get_config_path(config_path_input)
     console.print(f"Loading agent config from [bold green]'{config_path}'[/bold green]")
     config = yaml.safe_load(config_path.read_text())
 
@@ -73,18 +90,11 @@ def main(
         config.setdefault("agent", {})["cost_limit"] = cost_limit
     if exit_immediately:
         config.setdefault("agent", {})["confirm_exit"] = False
-    
-    # Force Stackspot model class
-    config.setdefault("model", {})["model_class"] = "stk"
-    
-    # Use agent_id as model_name if provided
-    if agent_id:
-        config.setdefault("model", {})["model_name"] = agent_id
 
-    # If model_name is still not set (not in config and not in args), try env var or fail?
-    # The StkModelConfig defaults model_name to STK_AGENT_ID env var.
-    
-    model = get_model(config.get("model", {}).get("model_name"), config.get("model", {}))
+    # Create StkModel with agent_id as model_name
+    model_config = config.get("model", {})
+    model_config["model_name"] = agent_id
+    model = StkModel(config_class=StkModelConfig, **model_config)
     env = LocalEnvironment(**config.get("env", {}))
 
     # Both visual flag and the MSWEA_VISUAL_MODE_DEFAULT flip the mode, so it's essentially a XOR

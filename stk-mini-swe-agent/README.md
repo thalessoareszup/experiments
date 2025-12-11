@@ -1,21 +1,25 @@
-This repository is a fork of [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) that supports [Stackspot](https://stackspot.com/) agents via the `stk` model class.
+Este repositório é um fork do [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) que suporta agentes [Stackspot](https://stackspot.com/) através da _model class_ `stk`.
 
-### Prerequisites
+### Pré-requisitos
 
-You need to set the following environment variables:
+Você precisa configurar as seguintes variáveis de ambiente:
 
-- `STK_CLIENT_ID`: Your Stackspot Client ID
-- `STK_CLIENT_SECRET`: Your Stackspot Client Secret
-- `STK_REALM`: The Stackspot Realm (e.g., `stackspot`)
-- `STK_AGENT_ID`: The Agent ID (Slug) you want to use (optional if passed via CLI)
+- `STK_CLIENT_ID`: Seu Client ID do Stackspot
+- `STK_CLIENT_SECRET`: Seu Client Secret do Stackspot
+- `STK_REALM`: O Realm do Stackspot (ex.: `stackspot`)
 
-### Usage
+### Uso
 
-You can use the specialized `stk-mini` command
+Fazendo o setup usando uv:
 
 ```bash
-stk-mini --model <your-agent-id>
+uv venv
+source .venv/bin/activate
+uv pip install -e .
 ```
 
-The `stk-mini` wrapper treats the `--model` argument as the `agent_id`.
+Você pode usar o comando especializado `mini-stk`
 
+```bash
+uv run mini-stk --agent-id <seu-agent-id>
+```
