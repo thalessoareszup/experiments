@@ -17,6 +17,7 @@ from rich.rule import Rule
 
 from minisweagent import global_config_dir
 from minisweagent.agents.default import AgentConfig, DefaultAgent, LimitsExceeded, NonTerminatingException, Submitted
+from minisweagent.models.utils import get_metrics_display
 
 console = Console(highlight=False)
 prompt_session = PromptSession(history=FileHistory(global_config_dir / "interactive_history.txt"))
@@ -43,8 +44,9 @@ class InteractiveAgent(DefaultAgent):
         # Extend supermethod to print messages
         super().add_message(role, content, **kwargs)
         if role == "assistant":
+            metrics = get_metrics_display(self.model)
             console.print(
-                f"\n[red][bold]mini-swe-agent[/bold] (step [bold]{self.model.n_calls}[/bold], [bold]${self.model.cost:.2f}[/bold]):[/red]\n",
+                f"\n[red][bold]mini-swe-agent[/bold] (step [bold]{self.model.n_calls}[/bold], [bold]{metrics}[/bold]):[/red]\n",
                 end="",
                 highlight=False,
             )
@@ -66,9 +68,10 @@ class InteractiveAgent(DefaultAgent):
             with console.status("Waiting for the LM to respond..."):
                 return super().query()
         except LimitsExceeded:
+            metrics = get_metrics_display(self.model)
             console.print(
                 f"Limits exceeded. Limits: {self.config.step_limit} steps, ${self.config.cost_limit}.\n"
-                f"Current spend: {self.model.n_calls} steps, ${self.model.cost:.2f}."
+                f"Current spend: {self.model.n_calls} steps, {metrics}."
             )
             self.config.step_limit = int(input("New step limit: "))
             self.config.cost_limit = float(input("New cost limit: "))

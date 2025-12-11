@@ -44,6 +44,8 @@ class Model(Protocol):
     config: Any
     cost: float
     n_calls: int
+    tokens_input: int | None  # None means not tracked
+    tokens_output: int | None  # None means not tracked
 
     def query(self, messages: list[dict[str, str]], **kwargs) -> dict: ...
 

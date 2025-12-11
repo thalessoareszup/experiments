@@ -22,6 +22,8 @@ class DeterministicModel:
         self.current_index = -1
         self.cost = 0.0
         self.n_calls = 0
+        self.tokens_input = None
+        self.tokens_output = None
 
     def query(self, messages: list[dict[str, str]], **kwargs) -> dict:
         self.current_index += 1

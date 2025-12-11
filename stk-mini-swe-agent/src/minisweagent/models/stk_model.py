@@ -32,6 +32,8 @@ class StkModel:
         self.config = config_class(**kwargs)
         self.cost = 0.0
         self.n_calls = 0
+        self.tokens_input = 0
+        self.tokens_output = 0
         self._token = None
 
         if not self.config.model_name:
@@ -129,25 +131,36 @@ class StkModel:
 
     def query(self, messages: list[dict[str, str]], **kwargs) -> dict:
         response_json = self._query(messages, **kwargs)
-        
+
         # Parse response based on user provided format:
         # { "message": "...", "stop_reason": "...", "conversation_id": "..." }
         content = response_json.get("message") or ""
-        
+
         if not content:
             # Fallback if message is null or empty, though it shouldn't be for a valid response
             content = str(response_json)
+
+        # Extract token information from response
+        tokens_data = response_json.get("tokens", {})
+        call_input_tokens = tokens_data.get("input", 0) or 0
+        call_output_tokens = tokens_data.get("output", 0) or 0
+
+        # Accumulate tokens
+        self.tokens_input += call_input_tokens
+        self.tokens_output += call_output_tokens
 
         cost = 0.0
         self.n_calls += 1
         self.cost += cost
         GLOBAL_MODEL_STATS.add(cost)
-        
+
         return {
             "content": content,
             "extra": {
                 "response": response_json,
                 "cost": cost,
+                "tokens_input": call_input_tokens,
+                "tokens_output": call_output_tokens,
             },
         }
 
