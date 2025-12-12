@@ -45,4 +45,5 @@ func init() {
 	rootCmd.AddCommand(newNextCmd())
 	rootCmd.AddCommand(newOnboardCmd())
 	rootCmd.AddCommand(newWebCmd())
+	rootCmd.AddCommand(newReportCmd())
 }

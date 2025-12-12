@@ -70,6 +70,18 @@ func migrate(sqldb *sql.DB) error {
 		return err
 	}
 
+	// Create reports table for agent status updates
+	if _, err := sqldb.Exec(`CREATE TABLE IF NOT EXISTS reports (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		step_index INTEGER NOT NULL,
+		report TEXT NOT NULL,
+		created_at TIMESTAMP NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE
+	)`); err != nil {
+		return fmt.Errorf("migrate reports: %w", err)
+	}
+
 	return nil
 }
 
@@ -330,4 +342,77 @@ func (db *DB) IsAwaitingConfirmation(ctx context.Context, runID int64, stepIndex
 	}
 
 	return requiresConf && confirmedAt == nil, nil
+}
+
+// Report represents an agent status update for a step.
+type Report struct {
+	ID        int64
+	RunID     int64
+	StepIndex int
+	Report    string
+	CreatedAt time.Time
+}
+
+// AddReport inserts a new report for the current step of the latest run.
+func (db *DB) AddReport(ctx context.Context, runID int64, stepIndex int, report string) error {
+	now := time.Now().UTC()
+	_, err := db.SQL.ExecContext(ctx,
+		`INSERT INTO reports (run_id, step_index, report, created_at)
+		 VALUES (?, ?, ?, ?)`,
+		runID, stepIndex, report, now,
+	)
+	if err != nil {
+		return fmt.Errorf("insert report: %w", err)
+	}
+	return nil
+}
+
+// ReportsForStep returns all reports for a given run and step index.
+func (db *DB) ReportsForStep(ctx context.Context, runID int64, stepIndex int) ([]Report, error) {
+	rows, err := db.SQL.QueryContext(ctx,
+		`SELECT id, run_id, step_index, report, created_at
+		 FROM reports
+		 WHERE run_id = ? AND step_index = ?
+		 ORDER BY created_at ASC`,
+		runID, stepIndex,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reports []Report
+	for rows.Next() {
+		var r Report
+		if err := rows.Scan(&r.ID, &r.RunID, &r.StepIndex, &r.Report, &r.CreatedAt); err != nil {
+			return nil, err
+		}
+		reports = append(reports, r)
+	}
+	return reports, rows.Err()
+}
+
+// ReportsForRun returns all reports for a given run, grouped by step index.
+func (db *DB) ReportsForRun(ctx context.Context, runID int64) (map[int][]Report, error) {
+	rows, err := db.SQL.QueryContext(ctx,
+		`SELECT id, run_id, step_index, report, created_at
+		 FROM reports
+		 WHERE run_id = ?
+		 ORDER BY step_index ASC, created_at ASC`,
+		runID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	reports := make(map[int][]Report)
+	for rows.Next() {
+		var r Report
+		if err := rows.Scan(&r.ID, &r.RunID, &r.StepIndex, &r.Report, &r.CreatedAt); err != nil {
+			return nil, err
+		}
+		reports[r.StepIndex] = append(reports[r.StepIndex], r)
+	}
+	return reports, rows.Err()
 }

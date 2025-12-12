@@ -25,9 +25,14 @@ Guidance for agents:
 
 - The workflow is defined step-by-step. For each step:
   1. Read the step description and carry out the work described.
-  2. Once you have completed the step, explain in your response that you
+  2. While working on a step, use the report command to communicate what you
+     are currently doing. This provides visibility to anyone monitoring:
+
+    wk report "Analyzing the authentication module"
+
+  3. Once you have completed the step, explain in your response that you
      finished that step (referencing its id/name).
-  3. Then advance the workflow state by running:
+  4. Then advance the workflow state by running:
 
     wk next
 
@@ -36,6 +41,9 @@ Guidance for agents:
     wk status
 
   to see the current run, progress, and step details.
+
+- Use 'wk report <message>' to communicate your current activity during a step.
+  Reports are displayed in the web monitor interface.
 
 The YAML file is only used to seed the workflow into SQLite when starting a
 run; after that, wk relies entirely on the SQLite state.`,
@@ -49,10 +57,13 @@ run; after that, wk relies entirely on the SQLite state.`,
 			fmt.Fprintln(cmd.OutOrStdout(), "    wk start")
 			fmt.Fprintln(cmd.OutOrStdout(), "- For each step:")
 			fmt.Fprintln(cmd.OutOrStdout(), "    1) Read the step description and complete the work.")
-			fmt.Fprintln(cmd.OutOrStdout(), "    2) In your response to the user, state that you finished that step (by id/name).")
-			fmt.Fprintln(cmd.OutOrStdout(), "    3) Advance to the next step:")
+			fmt.Fprintln(cmd.OutOrStdout(), "    2) Report what you are doing:")
+			fmt.Fprintln(cmd.OutOrStdout(), "       wk report \"<message>\"")
+			fmt.Fprintln(cmd.OutOrStdout(), "    3) In your response to the user, state that you finished that step (by id/name).")
+			fmt.Fprintln(cmd.OutOrStdout(), "    4) Advance to the next step:")
 			fmt.Fprintln(cmd.OutOrStdout(), "       wk next")
 			fmt.Fprintln(cmd.OutOrStdout(), "- Use 'wk status' anytime to see current progress and step details.")
+			fmt.Fprintln(cmd.OutOrStdout(), "- Use 'wk report <message>' to communicate your current activity. Reports are visible in the web monitor.")
 			return nil
 		},
 	}

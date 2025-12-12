@@ -17,6 +17,7 @@ import (
 type pageData struct {
 	Runs         []storage.Run
 	StepsByRun   map[int64][]storage.StepSnapshot
+	ReportsByRun map[int64]map[int][]storage.Report
 	Error        string
 	WorkflowFile string
 }
@@ -49,8 +50,8 @@ func main() {
 	mux.HandleFunc("/dbinfo", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		runs, stepsByRun, err := loadDBInfo(ctx, db)
-		data := pageData{Runs: runs, StepsByRun: stepsByRun, WorkflowFile: workflowFile}
+		runs, stepsByRun, reportsByRun, err := loadDBInfo(ctx, db)
+		data := pageData{Runs: runs, StepsByRun: stepsByRun, ReportsByRun: reportsByRun, WorkflowFile: workflowFile}
 		if err != nil {
 			log.Printf("loadDBInfo error: %v", err)
 			data.Error = err.Error()
@@ -120,15 +121,15 @@ func main() {
 	}
 }
 
-// loadDBInfo retrieves all runs and associated steps from the state DB.
-func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][]storage.StepSnapshot, error) {
+// loadDBInfo retrieves all runs, steps, and reports from the state DB.
+func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][]storage.StepSnapshot, map[int64]map[int][]storage.Report, error) {
 	// Query all runs ordered by id desc.
 	rows, err := db.SQL.QueryContext(ctx,
 		`SELECT id, started_at, status, current_step_index
 		 FROM runs
 		 ORDER BY id DESC`)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	defer rows.Close()
 
@@ -136,15 +137,16 @@ func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][
 	for rows.Next() {
 		var r storage.Run
 		if err := rows.Scan(&r.ID, &r.StartedAt, &r.Status, &r.CurrentStepIndex); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		runs = append(runs, r)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	stepsByRun := make(map[int64][]storage.StepSnapshot, len(runs))
+	reportsByRun := make(map[int64]map[int][]storage.Report, len(runs))
 
 	for _, r := range runs {
 		srows, err := db.SQL.QueryContext(ctx,
@@ -153,7 +155,7 @@ func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][
 			 WHERE run_id = ?
 			 ORDER BY step_index ASC`, r.ID)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		var steps []storage.StepSnapshot
@@ -161,17 +163,24 @@ func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][
 			var s storage.StepSnapshot
 			if err := srows.Scan(&s.Index, &s.ID, &s.Name, &s.Description, &s.RequiresConfirmation, &s.ConfirmedAt); err != nil {
 				srows.Close()
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 			steps = append(steps, s)
 		}
 		srows.Close()
 		if err := srows.Err(); err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		stepsByRun[r.ID] = steps
+
+		// Load reports for this run
+		reports, err := db.ReportsForRun(ctx, r.ID)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		reportsByRun[r.ID] = reports
 	}
 
-	return runs, stepsByRun, nil
+	return runs, stepsByRun, reportsByRun, nil
 }

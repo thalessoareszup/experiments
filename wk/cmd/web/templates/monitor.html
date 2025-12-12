@@ -238,6 +238,46 @@ code {
 .confirm-button:active {
   transform: translateY(0);
 }
+.reports-container {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f1f8ff;
+  border-radius: 4px;
+  border-left: 3px solid #0366d6;
+}
+.reports-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0366d6;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+.report-item {
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: white;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  border: 1px solid #e1e4e8;
+}
+.report-item:last-child {
+  margin-bottom: 0;
+}
+.report-time {
+  font-size: 0.7rem;
+  color: #6a737d;
+  margin-bottom: 0.25rem;
+  font-family: "SF Mono", Monaco, monospace;
+}
+.report-message {
+  color: #24292e;
+  line-height: 1.4;
+}
+.step-item.current .reports-container {
+  background: #fff;
+  border-color: #007bff;
+}
 </style>
 <script>
 // Auto-refresh every 2 seconds
@@ -279,11 +319,13 @@ setTimeout(function() {
 
     <div class="steps-container">
       {{ $steps := index $.StepsByRun .ID }}
+      {{ $reports := index $.ReportsByRun .ID }}
       {{ $currentIdx := .CurrentStepIndex }}
       {{if not $steps}}
       <p class="empty-state">No steps recorded for this run.</p>
       {{else}}
       {{range $steps}}
+      {{ $stepReports := index $reports .Index }}
       <div class="step-item {{if eq .Index $currentIdx}}current{{else}}{{if lt .Index $currentIdx}}completed{{else}}pending{{end}}{{end}}">
         <div class="step-header">
           <span class="step-index">{{.Index}}</span>
@@ -310,6 +352,17 @@ setTimeout(function() {
         </div>
         {{if .Description}}
         <div class="step-description">{{.Description}}</div>
+        {{end}}
+        {{if $stepReports}}
+        <div class="reports-container">
+          <div class="reports-header">Agent Reports</div>
+          {{range $stepReports}}
+          <div class="report-item">
+            <div class="report-time">{{formatTime .CreatedAt}}</div>
+            <div class="report-message">{{.Report}}</div>
+          </div>
+          {{end}}
+        </div>
         {{end}}
       </div>
       {{end}}
