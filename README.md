@@ -1,0 +1,15 @@
+# experiments
+
+Repositório com experimentos e PoCs diversas.
+
+## radius
+
+Explorando a ferramenta https://docs.radapp.io/
+
+## stk-mini-swe-agent
+
+Fork do [mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent) com integração com Stackspot AI
+
+## wk
+
+Uma ferramenta para oquestrar agentes de IA em workflows pré-definidos.

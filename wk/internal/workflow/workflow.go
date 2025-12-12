@@ -27,7 +27,7 @@ type WorkflowStep struct {
 	ID                   string `yaml:"id"`
 	Name                 string `yaml:"name"`
 	Description          string `yaml:"description"`
-	RequiresConfirmation bool   `yaml:"requires_confirmation"`
+	RequiresConfirmation bool   `yaml:"requires-confirmation"`
 }
 
 // Load loads and validates a workflow from the given YAML file path.
