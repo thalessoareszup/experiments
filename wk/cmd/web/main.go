@@ -15,11 +15,11 @@ import (
 
 // pageData holds data passed to the HTML template.
 type pageData struct {
-	Runs         []storage.Run
-	StepsByRun   map[int64][]storage.StepSnapshot
-	ReportsByRun map[int64]map[int][]storage.Report
-	Error        string
-	WorkflowFile string
+	Runs          []storage.Run
+	StepsByRun    map[int64][]storage.StepSnapshot
+	MessagesByRun map[int64]map[int][]storage.Message
+	Error         string
+	WorkflowFile  string
 }
 
 func main() {
@@ -51,8 +51,8 @@ func main() {
 	mux.HandleFunc("/dbinfo", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		runs, stepsByRun, reportsByRun, err := loadDBInfo(ctx, db)
-		data := pageData{Runs: runs, StepsByRun: stepsByRun, ReportsByRun: reportsByRun, WorkflowFile: workflowFile}
+		runs, stepsByRun, messagesByRun, err := loadDBInfo(ctx, db)
+		data := pageData{Runs: runs, StepsByRun: stepsByRun, MessagesByRun: messagesByRun, WorkflowFile: workflowFile}
 		if err != nil {
 			log.Printf("loadDBInfo error: %v", err)
 			data.Error = err.Error()
@@ -102,8 +102,61 @@ func main() {
 
 		log.Printf("Confirmed step %d for run %d", stepIndex, runID)
 
-		// Redirect back to main page
-		http.Redirect(w, r, "/dbinfo", http.StatusSeeOther)
+		// Return updated content for htmx
+		runs, stepsByRun, messagesByRun, err := loadDBInfo(ctx, db)
+		data := pageData{Runs: runs, StepsByRun: stepsByRun, MessagesByRun: messagesByRun, WorkflowFile: workflowFile}
+		if err != nil {
+			data.Error = err.Error()
+		}
+		if err := tmpl.Execute(w, data); err != nil {
+			log.Printf("template execute: %v", err)
+		}
+	})
+
+	mux.HandleFunc("/reply", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		ctx := r.Context()
+
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Invalid form data", http.StatusBadRequest)
+			return
+		}
+
+		messageIDStr := r.FormValue("message_id")
+		reply := r.FormValue("reply")
+
+		var messageID int64
+		if _, err := fmt.Sscanf(messageIDStr, "%d", &messageID); err != nil {
+			http.Error(w, "Invalid message_id", http.StatusBadRequest)
+			return
+		}
+
+		if reply == "" {
+			http.Error(w, "Reply cannot be empty", http.StatusBadRequest)
+			return
+		}
+
+		if err := db.ReplyToMessage(ctx, messageID, reply); err != nil {
+			log.Printf("reply to message error: %v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Replied to message %d", messageID)
+
+		// Return updated content for htmx
+		runs, stepsByRun, messagesByRun, err := loadDBInfo(ctx, db)
+		data := pageData{Runs: runs, StepsByRun: stepsByRun, MessagesByRun: messagesByRun, WorkflowFile: workflowFile}
+		if err != nil {
+			data.Error = err.Error()
+		}
+		if err := tmpl.Execute(w, data); err != nil {
+			log.Printf("template execute: %v", err)
+		}
 	})
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -122,8 +175,8 @@ func main() {
 	}
 }
 
-// loadDBInfo retrieves all runs, steps, and reports from the state DB.
-func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][]storage.StepSnapshot, map[int64]map[int][]storage.Report, error) {
+// loadDBInfo retrieves all runs, steps, and messages from the state DB.
+func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][]storage.StepSnapshot, map[int64]map[int][]storage.Message, error) {
 	// Query all runs ordered by id desc.
 	rows, err := db.SQL.QueryContext(ctx,
 		`SELECT id, started_at, status, current_step_index
@@ -147,7 +200,7 @@ func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][
 	}
 
 	stepsByRun := make(map[int64][]storage.StepSnapshot, len(runs))
-	reportsByRun := make(map[int64]map[int][]storage.Report, len(runs))
+	messagesByRun := make(map[int64]map[int][]storage.Message, len(runs))
 
 	for _, r := range runs {
 		srows, err := db.SQL.QueryContext(ctx,
@@ -175,13 +228,13 @@ func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][
 
 		stepsByRun[r.ID] = steps
 
-		// Load reports for this run
-		reports, err := db.ReportsForRun(ctx, r.ID)
+		// Load messages for this run
+		messages, err := db.MessagesForRun(ctx, r.ID)
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		reportsByRun[r.ID] = reports
+		messagesByRun[r.ID] = messages
 	}
 
-	return runs, stepsByRun, reportsByRun, nil
+	return runs, stepsByRun, messagesByRun, nil
 }

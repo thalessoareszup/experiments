@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>wk workflow monitor</title>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
 <style>
 * { box-sizing: border-box; }
 body {
@@ -183,22 +184,6 @@ code {
   padding: 3rem;
   color: #666;
 }
-.auto-refresh {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(255,255,255,0.95);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  font-size: 0.75rem;
-  color: #666;
-  animation: fadeIn 0.3s;
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 .confirmation-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -238,14 +223,14 @@ code {
 .confirm-button:active {
   transform: translateY(0);
 }
-.reports-container {
+.messages-container {
   margin-top: 0.75rem;
   padding: 0.75rem;
   background: #f1f8ff;
   border-radius: 4px;
   border-left: 3px solid #0366d6;
 }
-.reports-header {
+.messages-header {
   font-size: 0.75rem;
   font-weight: 600;
   color: #0366d6;
@@ -253,7 +238,7 @@ code {
   letter-spacing: 0.5px;
   margin-bottom: 0.5rem;
 }
-.report-item {
+.message-item {
   padding: 0.5rem;
   margin-bottom: 0.5rem;
   background: white;
@@ -261,36 +246,89 @@ code {
   font-size: 0.875rem;
   border: 1px solid #e1e4e8;
 }
-.report-item:last-child {
+.message-item.question {
+  border-color: #f0ad4e;
+  background: #fffdf5;
+}
+.message-item.question.answered {
+  border-color: #28a745;
+  background: #f0fff4;
+}
+.message-item:last-child {
   margin-bottom: 0;
 }
-.report-time {
+.message-time {
   font-size: 0.7rem;
   color: #6a737d;
   margin-bottom: 0.25rem;
   font-family: "SF Mono", Monaco, monospace;
 }
-.report-message {
+.message-content {
   color: #24292e;
   line-height: 1.4;
 }
-.step-item.current .reports-container {
+.message-type {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 0.5rem;
+}
+.message-type.question {
+  background: #fff3cd;
+  color: #856404;
+}
+.message-reply {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #e8f5e9;
+  border-radius: 4px;
+  border-left: 3px solid #28a745;
+}
+.message-reply-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #28a745;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+.reply-form {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.reply-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+.reply-button {
+  padding: 0.5rem 1rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reply-button:hover {
+  background: #0056b3;
+}
+.step-item.current .messages-container {
   background: #fff;
   border-color: #007bff;
 }
 </style>
-<script>
-// Auto-refresh every 2 seconds
-setTimeout(function() {
-  location.reload();
-}, 2000);
-</script>
 </head>
 <body>
-<div class="container">
-  <h1>🔄 wk workflow monitor</h1>
+<div class="container" hx-get="/dbinfo" hx-trigger="every 2s" hx-select=".content" hx-target=".content" hx-swap="outerHTML">
+  <h1>wk workflow monitor</h1>
   <p class="meta">Workflow file: <code>{{.WorkflowFile}}</code></p>
-  <div class="auto-refresh">Auto-refreshing in 2s...</div>
+  <div class="content">
 
   {{if .Error}}
   <div class="error-box">
@@ -319,13 +357,13 @@ setTimeout(function() {
 
     <div class="steps-container">
       {{ $steps := index $.StepsByRun .ID }}
-      {{ $reports := index $.ReportsByRun .ID }}
+      {{ $messages := index $.MessagesByRun .ID }}
       {{ $currentIdx := .CurrentStepIndex }}
       {{if not $steps}}
       <p class="empty-state">No steps recorded for this run.</p>
       {{else}}
       {{range $steps}}
-      {{ $stepReports := index $reports .Index }}
+      {{ $stepMessages := index $messages .Index }}
       <div class="step-item {{if eq .Index $currentIdx}}current{{else}}{{if lt .Index $currentIdx}}completed{{else}}pending{{end}}{{end}}">
         <div class="step-header">
           <span class="step-index">{{.Index}}</span>
@@ -338,7 +376,7 @@ setTimeout(function() {
               <span class="confirmation-badge confirmed">✓ Confirmed</span>
             {{else}}
               {{if and (eq .Index $currentIdx) (ne $run.Status "completed")}}
-                <form method="POST" action="/confirm" style="display: inline; margin-left: 0.5rem;">
+                <form hx-post="/confirm" hx-target=".content" hx-select=".content" hx-swap="outerHTML" style="display: inline; margin-left: 0.5rem;">
                   <input type="hidden" name="run_id" value="{{$run.ID}}">
                   <input type="hidden" name="step_index" value="{{.Index}}">
                   <button type="submit" class="confirm-button">Confirm Step</button>
@@ -353,13 +391,27 @@ setTimeout(function() {
         {{if .Description}}
         <div class="step-description">{{.Description}}</div>
         {{end}}
-        {{if $stepReports}}
-        <div class="reports-container">
-          <div class="reports-header">Agent Reports</div>
-          {{range $stepReports}}
-          <div class="report-item">
-            <div class="report-time">{{formatTime .CreatedAt}}</div>
-            <div class="report-message">{{.Report}}</div>
+        {{if $stepMessages}}
+        <div class="messages-container">
+          <div class="messages-header">Agent Messages</div>
+          {{range $stepMessages}}
+          <div class="message-item {{if .IsQuestion}}question{{if .Reply}} answered{{end}}{{end}}">
+            <div class="message-time">{{formatTime .CreatedAt}}{{if .IsQuestion}}<span class="message-type question">Question</span>{{end}}</div>
+            <div class="message-content">{{.Content}}</div>
+            {{if .IsQuestion}}
+              {{if .Reply}}
+              <div class="message-reply">
+                <div class="message-reply-label">Reply</div>
+                {{.Reply}}
+              </div>
+              {{else}}
+              <form class="reply-form" hx-post="/reply" hx-target=".content" hx-select=".content" hx-swap="outerHTML">
+                <input type="hidden" name="message_id" value="{{.ID}}">
+                <input type="text" name="reply" class="reply-input" placeholder="Type your reply..." required>
+                <button type="submit" class="reply-button">Reply</button>
+              </form>
+              {{end}}
+            {{end}}
           </div>
           {{end}}
         </div>
@@ -371,6 +423,7 @@ setTimeout(function() {
   </div>
   {{end}}
   {{end}}
+  </div>
 </div>
 </body>
 </html>

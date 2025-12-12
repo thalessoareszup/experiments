@@ -25,25 +25,23 @@ Guidance for agents:
 
 - The workflow is defined step-by-step. For each step:
   1. Read the step description and carry out the work described.
-  2. While working on a step, use the report command to communicate what you
-     are currently doing. This provides visibility to anyone monitoring:
+  2. Use 'wk say' to communicate progress:
 
-    wk report "Analyzing the authentication module"
+    wk say "Analyzing the authentication module"
 
-  3. Once you have completed the step, explain in your response that you
-     finished that step (referencing its id/name).
-  4. Then advance the workflow state by running:
+  3. If you need user input, use --ask to wait for a reply:
+
+    wk say "Should I use JWT or sessions?" --ask
+
+    IMPORTANT: Do NOT end your turn or return control to the user when asking
+    a question. Just call 'wk say --ask' as a tool - it will block and return
+    the user's reply directly. Continue working after receiving the reply.
+
+  4. Once you have completed the step, advance the workflow:
 
     wk next
 
-- At any time, use:
-
-    wk status
-
-  to see the current run, progress, and step details.
-
-- Use 'wk report <message>' to communicate your current activity during a step.
-  Reports are displayed in the web monitor interface.`,
+- At any time, use 'wk status' to see current progress and step details.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Fprintln(cmd.OutOrStdout(), "wk onboard: guidance for agents")
 			fmt.Fprintln(cmd.OutOrStdout(), "")
@@ -54,13 +52,14 @@ Guidance for agents:
 			fmt.Fprintln(cmd.OutOrStdout(), "    wk start")
 			fmt.Fprintln(cmd.OutOrStdout(), "- For each step:")
 			fmt.Fprintln(cmd.OutOrStdout(), "    1) Read the step description and complete the work.")
-			fmt.Fprintln(cmd.OutOrStdout(), "    2) Report what you are doing:")
-			fmt.Fprintln(cmd.OutOrStdout(), "       wk report \"<message>\"")
-			fmt.Fprintln(cmd.OutOrStdout(), "    3) In your response to the user, state that you finished that step (by id/name).")
+			fmt.Fprintln(cmd.OutOrStdout(), "    2) Communicate progress:")
+			fmt.Fprintln(cmd.OutOrStdout(), "       wk say \"<message>\"")
+			fmt.Fprintln(cmd.OutOrStdout(), "    3) Ask questions (waits for reply):")
+			fmt.Fprintln(cmd.OutOrStdout(), "       wk say \"<question>\" --ask")
+			fmt.Fprintln(cmd.OutOrStdout(), "       Do NOT end your turn - the command blocks and returns the reply.")
 			fmt.Fprintln(cmd.OutOrStdout(), "    4) Advance to the next step:")
 			fmt.Fprintln(cmd.OutOrStdout(), "       wk next")
 			fmt.Fprintln(cmd.OutOrStdout(), "- Use 'wk status' anytime to see current progress and step details.")
-			fmt.Fprintln(cmd.OutOrStdout(), "- Use 'wk report <message>' to communicate your current activity. Reports are visible in the web monitor.")
 			return nil
 		},
 	}
