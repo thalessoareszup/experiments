@@ -26,7 +26,7 @@ You can override this with -f/--file.`,
 			}
 
 			// Open state DB
-			db, err := storage.Open(workflowFile)
+			db, err := storage.Open(dbFile)
 			if err != nil {
 				return err
 			}

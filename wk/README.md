@@ -12,13 +12,15 @@ Mova `wk` para algum lugar do seu PATH.
 
 ## Uso com Agentes de IA
 
-Para usar o `wk` com agentes de IA (como `stk-codegen`), informe o agente sobre a ferramenta e peça para executar:
+Para usar o `wk` com agentes de IA (como `stk-codegen`), informe o agente sobre a ferramenta e executar `wk onboard`. Por exemplo:
 
-```bash
-wk onboard
+```
+You have access to `wk`, a workflow management tool. YOU MUST use `wk` to start any work I give you later.
+
+Run `wk onboard` to learn how to use it.
 ```
 
-O agente então será instruído a usar os comandos `wk start`, `wk status`, e `wk next` para executar o workflow passo a passo.
+O agente então deverá executar `wk onboard`, e será instruído a usar os comandos `wk start`, `wk status`, e `wk next` para executar o workflow passo a passo.
 
 Defina o workflow em `$HOME/.local/wk/workflow.yaml`. Exemplo:
 

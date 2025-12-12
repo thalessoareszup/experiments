@@ -19,7 +19,7 @@ func newNextCmd() *cobra.Command {
 If the run is already at the last step, it is marked as completed.
 If the current step requires confirmation but has not been confirmed, the command fails.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := storage.Open(workflowFile)
+			db, err := storage.Open(dbFile)
 			if err != nil {
 				return err
 			}

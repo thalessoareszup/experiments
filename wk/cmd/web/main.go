@@ -28,8 +28,9 @@ func main() {
 		homeDir = "."
 	}
 	workflowFile := homeDir + "/.local/wk/workflow.yaml"
+	dbFile := homeDir + "/.local/wk/wk.db"
 
-	db, err := storage.Open(workflowFile)
+	db, err := storage.Open(dbFile)
 	if err != nil {
 		log.Fatalf("open state db: %v", err)
 	}

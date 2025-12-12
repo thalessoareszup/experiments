@@ -24,7 +24,7 @@ func newStatusCmd() *cobra.Command {
 
 With --wait-confirmation, blocks until the current step is confirmed (if it requires confirmation).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			db, err := storage.Open(workflowFile)
+			db, err := storage.Open(dbFile)
 			if err != nil {
 				return err
 			}

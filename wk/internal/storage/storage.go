@@ -17,9 +17,9 @@ type DB struct {
 	SQL *sql.DB
 }
 
-// Open opens the state database for the given workflow path.
-func Open(workflowPath string) (*DB, error) {
-	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)", workflowPath)
+// Open opens the state database at the given path.
+func Open(dbPath string) (*DB, error) {
+	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)", dbPath)
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)

@@ -27,7 +27,7 @@ Example:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
-			db, err := storage.Open(workflowFile)
+			db, err := storage.Open(dbFile)
 			if err != nil {
 				return fmt.Errorf("open state db: %w", err)
 			}
