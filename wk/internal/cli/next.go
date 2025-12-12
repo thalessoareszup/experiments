@@ -13,12 +13,10 @@ import (
 func newNextCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "next",
-		Short: "Advance to the next workflow step (based on SQLite state)",
-		Long: `Advance the latest run to the next step using only the SQLite state DB.
+		Short: "Advance to the next workflow step",
+		Long: `Advance the current run to the next step.
 
-If the run is already at the last step, the run is marked as completed
-and a message is printed.
-
+If the run is already at the last step, it is marked as completed.
 If the current step requires confirmation but has not been confirmed, the command fails.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			db, err := storage.Open(workflowFile)

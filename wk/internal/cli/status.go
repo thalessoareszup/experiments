@@ -19,10 +19,8 @@ func newStatusCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "Show workflow run status and current step (from SQLite state)",
-		Long: `Show the latest run status and current step using only the SQLite state DB.
-
-This does not read the YAML file; it only inspects the state stored by 'wk start'.
+		Short: "Show workflow run status and current step",
+		Long: `Show the current run status and step details.
 
 With --wait-confirmation, blocks until the current step is confirmed (if it requires confirmation).`,
 		RunE: func(cmd *cobra.Command, args []string) error {

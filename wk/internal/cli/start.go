@@ -14,7 +14,7 @@ func newStartCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Start a workflow",
-		Long: `Load the workflow YAML and create a new run in the SQLite state DB.
+		Long: `Load the workflow definition and create a new run.
 
 By default, the workflow file is $HOME/.local/wk/workflow.yaml.
 You can override this with -f/--file.`,
@@ -25,7 +25,7 @@ You can override this with -f/--file.`,
 				return err
 			}
 
-			// Open state DB (SQLite)
+			// Open state DB
 			db, err := storage.Open(workflowFile)
 			if err != nil {
 				return err

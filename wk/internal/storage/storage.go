@@ -17,12 +17,12 @@ type DB struct {
 	SQL *sql.DB
 }
 
-// Open the SQLite DB
+// Open opens the state database for the given workflow path.
 func Open(workflowPath string) (*DB, error) {
 	dsn := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)", workflowPath)
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("open sqlite: %w", err)
+		return nil, fmt.Errorf("open db: %w", err)
 	}
 
 	if err := migrate(db); err != nil {
@@ -127,7 +127,7 @@ type StepSnapshot struct {
 }
 
 // StartRun creates a new run for the given workflow, starting at step 0 and
-// snapshotting all steps into the DB so that later commands rely only on SQLite.
+// storing all steps in the database.
 func (db *DB) StartRun(ctx context.Context, wf *workflow.Workflow) (*Run, error) {
 	if len(wf.Steps) == 0 {
 		return nil, fmt.Errorf("cannot start run: workflow has no steps")

@@ -43,10 +43,7 @@ Guidance for agents:
   to see the current run, progress, and step details.
 
 - Use 'wk report <message>' to communicate your current activity during a step.
-  Reports are displayed in the web monitor interface.
-
-The YAML file is only used to seed the workflow into SQLite when starting a
-run; after that, wk relies entirely on the SQLite state.`,
+  Reports are displayed in the web monitor interface.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Fprintln(cmd.OutOrStdout(), "wk onboard: guidance for agents")
 			fmt.Fprintln(cmd.OutOrStdout(), "")

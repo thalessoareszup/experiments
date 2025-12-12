@@ -14,10 +14,9 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "wk",
-	Short: "wk helps agents follow a step-by-step workflow defined in YAML",
-	Long: `wk is a small CLI tool for agents to follow a workflow
-as defined in a workflow.yaml (or similar) file. Use it to start
-and progress through the steps of your workflow.`,
+	Short: "wk helps agents follow a step-by-step workflow",
+	Long: `wk is a CLI tool for agents to follow a workflow.
+Use it to start and progress through the steps of your workflow.`,
 	// Resolve the workflow file path once, so subcommands all see the
 	// fully-resolved location
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
