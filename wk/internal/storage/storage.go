@@ -70,16 +70,13 @@ func migrate(sqldb *sql.DB) error {
 		return err
 	}
 
-	// Create messages table for agent communication (reports and questions)
+	// Create messages table for agent status updates
 	if _, err := sqldb.Exec(`CREATE TABLE IF NOT EXISTS messages (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		run_id INTEGER NOT NULL,
 		step_index INTEGER NOT NULL,
 		content TEXT NOT NULL,
-		is_question BOOLEAN NOT NULL DEFAULT 0,
-		reply TEXT,
 		created_at TIMESTAMP NOT NULL,
-		replied_at TIMESTAMP,
 		FOREIGN KEY (run_id) REFERENCES runs(id) ON DELETE CASCADE
 	)`); err != nil {
 		return fmt.Errorf("migrate messages: %w", err)
@@ -347,95 +344,33 @@ func (db *DB) IsAwaitingConfirmation(ctx context.Context, runID int64, stepIndex
 	return requiresConf && confirmedAt == nil, nil
 }
 
-// Message represents an agent message (report or question) for a step.
+// Message represents an agent status update for a step.
 type Message struct {
-	ID         int64
-	RunID      int64
-	StepIndex  int
-	Content    string
-	IsQuestion bool
-	Reply      *string
-	CreatedAt  time.Time
-	RepliedAt  *time.Time
+	ID        int64
+	RunID     int64
+	StepIndex int
+	Content   string
+	CreatedAt time.Time
 }
 
-// AddMessage inserts a new message for the current step of the latest run.
-// Returns the message ID.
-func (db *DB) AddMessage(ctx context.Context, runID int64, stepIndex int, content string, isQuestion bool) (int64, error) {
+// AddMessage inserts a new message for the current step.
+func (db *DB) AddMessage(ctx context.Context, runID int64, stepIndex int, content string) error {
 	now := time.Now().UTC()
-	res, err := db.SQL.ExecContext(ctx,
-		`INSERT INTO messages (run_id, step_index, content, is_question, created_at)
-		 VALUES (?, ?, ?, ?, ?)`,
-		runID, stepIndex, content, isQuestion, now,
+	_, err := db.SQL.ExecContext(ctx,
+		`INSERT INTO messages (run_id, step_index, content, created_at)
+		 VALUES (?, ?, ?, ?)`,
+		runID, stepIndex, content, now,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("insert message: %w", err)
-	}
-	return res.LastInsertId()
-}
-
-// ReplyToMessage sets the reply for a message.
-func (db *DB) ReplyToMessage(ctx context.Context, messageID int64, reply string) error {
-	now := time.Now().UTC()
-	result, err := db.SQL.ExecContext(ctx,
-		`UPDATE messages SET reply = ?, replied_at = ? WHERE id = ? AND is_question = 1 AND reply IS NULL`,
-		reply, now, messageID,
-	)
-	if err != nil {
-		return fmt.Errorf("reply to message: %w", err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if rows == 0 {
-		return fmt.Errorf("message not found, not a question, or already replied")
+		return fmt.Errorf("insert message: %w", err)
 	}
 	return nil
-}
-
-// GetMessageReply returns the reply for a message, or nil if not yet replied.
-func (db *DB) GetMessageReply(ctx context.Context, messageID int64) (*string, error) {
-	var reply *string
-	err := db.SQL.QueryRowContext(ctx,
-		`SELECT reply FROM messages WHERE id = ?`,
-		messageID,
-	).Scan(&reply)
-	if err != nil {
-		return nil, err
-	}
-	return reply, nil
-}
-
-// MessagesForStep returns all messages for a given run and step index.
-func (db *DB) MessagesForStep(ctx context.Context, runID int64, stepIndex int) ([]Message, error) {
-	rows, err := db.SQL.QueryContext(ctx,
-		`SELECT id, run_id, step_index, content, is_question, reply, created_at, replied_at
-		 FROM messages
-		 WHERE run_id = ? AND step_index = ?
-		 ORDER BY created_at ASC`,
-		runID, stepIndex,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var messages []Message
-	for rows.Next() {
-		var m Message
-		if err := rows.Scan(&m.ID, &m.RunID, &m.StepIndex, &m.Content, &m.IsQuestion, &m.Reply, &m.CreatedAt, &m.RepliedAt); err != nil {
-			return nil, err
-		}
-		messages = append(messages, m)
-	}
-	return messages, rows.Err()
 }
 
 // MessagesForRun returns all messages for a given run, grouped by step index.
 func (db *DB) MessagesForRun(ctx context.Context, runID int64) (map[int][]Message, error) {
 	rows, err := db.SQL.QueryContext(ctx,
-		`SELECT id, run_id, step_index, content, is_question, reply, created_at, replied_at
+		`SELECT id, run_id, step_index, content, created_at
 		 FROM messages
 		 WHERE run_id = ?
 		 ORDER BY step_index ASC, created_at ASC`,
@@ -449,7 +384,7 @@ func (db *DB) MessagesForRun(ctx context.Context, runID int64) (map[int][]Messag
 	messages := make(map[int][]Message)
 	for rows.Next() {
 		var m Message
-		if err := rows.Scan(&m.ID, &m.RunID, &m.StepIndex, &m.Content, &m.IsQuestion, &m.Reply, &m.CreatedAt, &m.RepliedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.RunID, &m.StepIndex, &m.Content, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		messages[m.StepIndex] = append(messages[m.StepIndex], m)

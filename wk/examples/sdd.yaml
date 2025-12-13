@@ -1,0 +1,86 @@
+name: Spec-Driven Development
+description: |
+  Implement a feature using spec-driven development. Start from a user story,
+  build specifications, break into tasks, then implement.
+
+steps:
+  - id: gather-story
+    name: Gather User Story
+    description: |
+      Ask the user to describe the feature they want:
+
+      - What problem does it solve?
+      - Who is it for?
+      - What should it do from the user's perspective?
+      - Any constraints or preferences?
+
+      Do not proceed until you have a clear understanding of what to build.
+    requires-confirmation: true
+
+  - id: functional-spec
+    name: Write Functional Spec
+    description: |
+      Create a functional specification document at specs/functional.md:
+
+      - Overview: what the feature does
+      - User stories and use cases
+      - Acceptance criteria (testable conditions for success)
+      - UI/UX considerations if applicable
+      - Out of scope: what this feature does NOT do
+
+      This describes WHAT the feature does, not HOW it's built.
+    requires-confirmation: true
+
+  - id: technical-spec
+    name: Write Technical Spec
+    description: |
+      Analyze the codebase and create a technical specification at specs/technical.md:
+
+      - Architecture: how it fits into the existing system
+      - Data models and storage
+      - APIs and interfaces
+      - Dependencies (internal and external)
+      - Error handling approach
+      - Testing strategy
+
+      This describes HOW the feature is built.
+    requires-confirmation: true
+
+  - id: task-breakdown
+    name: Break Into Tasks
+    description: |
+      Break the technical spec into discrete implementation tasks.
+      Add a "Tasks" section to specs/technical.md with:
+
+      - Ordered list of tasks with clear scope
+      - Each task should be completable independently
+      - Estimate complexity (small/medium/large)
+      - Note dependencies between tasks
+
+      Review the task list before starting implementation.
+    requires-confirmation: true
+
+  - id: implement
+    name: Implement Tasks
+    description: |
+      Implement each task from the task list:
+
+      - Work through tasks in order
+      - Write tests alongside implementation
+      - Update specs if you discover issues
+      - Run tests after each task
+
+      Report progress as you complete each task.
+
+  - id: verify
+    name: Verify Against Specs
+    description: |
+      Verify the implementation against both specs:
+
+      - Check all acceptance criteria from functional spec
+      - Confirm technical spec was followed
+      - Run full test suite
+      - Note any deviations and update specs accordingly
+
+      Summarize what was built and any spec changes.
+    requires-confirmation: true

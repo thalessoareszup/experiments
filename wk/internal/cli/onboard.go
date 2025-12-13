@@ -29,17 +29,14 @@ Guidance for agents:
 
     wk say "Analyzing the authentication module"
 
-  3. If you need user input, use --ask to wait for a reply:
-
-    wk say "Should I use JWT or sessions?" --ask
-
-    IMPORTANT: Do NOT end your turn or return control to the user when asking
-    a question. Just call 'wk say --ask' as a tool - it will block and return
-    the user's reply directly. Continue working after receiving the reply.
-
-  4. Once you have completed the step, advance the workflow:
+  3. Once you have completed the step, advance the workflow:
 
     wk next
+
+- IMPORTANT: Some steps are marked with 'requires-confirmation'. When you reach
+  such a step, you MUST stop and ask the user to review your work before
+  proceeding. Explain what you've done and what should be reviewed. Wait for
+  explicit approval before calling 'wk next'.
 
 - At any time, use 'wk status' to see current progress and step details.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -54,11 +51,10 @@ Guidance for agents:
 			fmt.Fprintln(cmd.OutOrStdout(), "    1) Read the step description and complete the work.")
 			fmt.Fprintln(cmd.OutOrStdout(), "    2) Communicate progress:")
 			fmt.Fprintln(cmd.OutOrStdout(), "       wk say \"<message>\"")
-			fmt.Fprintln(cmd.OutOrStdout(), "    3) Ask questions (waits for reply):")
-			fmt.Fprintln(cmd.OutOrStdout(), "       wk say \"<question>\" --ask")
-			fmt.Fprintln(cmd.OutOrStdout(), "       Do NOT end your turn - the command blocks and returns the reply.")
-			fmt.Fprintln(cmd.OutOrStdout(), "    4) Advance to the next step:")
+			fmt.Fprintln(cmd.OutOrStdout(), "    3) Advance to the next step:")
 			fmt.Fprintln(cmd.OutOrStdout(), "       wk next")
+			fmt.Fprintln(cmd.OutOrStdout(), "- IMPORTANT: If a step has 'requires-confirmation', stop and ask the user")
+			fmt.Fprintln(cmd.OutOrStdout(), "  to review your work before proceeding. Explain what should be reviewed.")
 			fmt.Fprintln(cmd.OutOrStdout(), "- Use 'wk status' anytime to see current progress and step details.")
 			return nil
 		},

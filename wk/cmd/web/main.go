@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -36,7 +35,6 @@ func main() {
 	}
 	defer db.Close()
 
-	// Prepare template once at startup.
 	tmpl := template.Must(template.New("monitor.html").Funcs(template.FuncMap{
 		"formatTime": func(t time.Time) string {
 			if t.IsZero() {
@@ -63,102 +61,6 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("/confirm", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		ctx := r.Context()
-
-		// Parse form data
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
-
-		runIDStr := r.FormValue("run_id")
-		stepIndexStr := r.FormValue("step_index")
-
-		var runID int64
-		var stepIndex int
-
-		if _, err := fmt.Sscanf(runIDStr, "%d", &runID); err != nil {
-			http.Error(w, "Invalid run_id", http.StatusBadRequest)
-			return
-		}
-
-		if _, err := fmt.Sscanf(stepIndexStr, "%d", &stepIndex); err != nil {
-			http.Error(w, "Invalid step_index", http.StatusBadRequest)
-			return
-		}
-
-		// Confirm the step
-		if err := db.ConfirmStep(ctx, runID, stepIndex); err != nil {
-			log.Printf("confirm step error: %v", err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		log.Printf("Confirmed step %d for run %d", stepIndex, runID)
-
-		// Return updated content for htmx
-		runs, stepsByRun, messagesByRun, err := loadDBInfo(ctx, db)
-		data := pageData{Runs: runs, StepsByRun: stepsByRun, MessagesByRun: messagesByRun, WorkflowFile: workflowFile}
-		if err != nil {
-			data.Error = err.Error()
-		}
-		if err := tmpl.Execute(w, data); err != nil {
-			log.Printf("template execute: %v", err)
-		}
-	})
-
-	mux.HandleFunc("/reply", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		ctx := r.Context()
-
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, "Invalid form data", http.StatusBadRequest)
-			return
-		}
-
-		messageIDStr := r.FormValue("message_id")
-		reply := r.FormValue("reply")
-
-		var messageID int64
-		if _, err := fmt.Sscanf(messageIDStr, "%d", &messageID); err != nil {
-			http.Error(w, "Invalid message_id", http.StatusBadRequest)
-			return
-		}
-
-		if reply == "" {
-			http.Error(w, "Reply cannot be empty", http.StatusBadRequest)
-			return
-		}
-
-		if err := db.ReplyToMessage(ctx, messageID, reply); err != nil {
-			log.Printf("reply to message error: %v", err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		log.Printf("Replied to message %d", messageID)
-
-		// Return updated content for htmx
-		runs, stepsByRun, messagesByRun, err := loadDBInfo(ctx, db)
-		data := pageData{Runs: runs, StepsByRun: stepsByRun, MessagesByRun: messagesByRun, WorkflowFile: workflowFile}
-		if err != nil {
-			data.Error = err.Error()
-		}
-		if err := tmpl.Execute(w, data); err != nil {
-			log.Printf("template execute: %v", err)
-		}
-	})
-
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/dbinfo", http.StatusSeeOther)
 	})
@@ -169,7 +71,7 @@ func main() {
 	}
 
 	addr := ":" + port
-	log.Printf("Starting web server on %s (workflow file: %s)", addr, workflowFile)
+	log.Printf("Starting web server on %s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("http server: %v", err)
 	}
@@ -177,7 +79,6 @@ func main() {
 
 // loadDBInfo retrieves all runs, steps, and messages from the state DB.
 func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][]storage.StepSnapshot, map[int64]map[int][]storage.Message, error) {
-	// Query all runs ordered by id desc.
 	rows, err := db.SQL.QueryContext(ctx,
 		`SELECT id, started_at, status, current_step_index
 		 FROM runs
@@ -228,7 +129,6 @@ func loadDBInfo(ctx context.Context, db *storage.DB) ([]storage.Run, map[int64][
 
 		stepsByRun[r.ID] = steps
 
-		// Load messages for this run
 		messages, err := db.MessagesForRun(ctx, r.ID)
 		if err != nil {
 			return nil, nil, nil, err

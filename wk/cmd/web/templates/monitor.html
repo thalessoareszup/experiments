@@ -74,10 +74,9 @@ code {
   font-weight: 600;
   text-transform: uppercase;
 }
-.status-running { background: #d1ecf1; color: #0c5460; }
-.status-complete { background: #d4edda; color: #155724; }
+.status-in_progress { background: #d1ecf1; color: #0c5460; }
+.status-completed { background: #d4edda; color: #155724; }
 .status-failed { background: #f8d7da; color: #721c24; }
-.status-default { background: #e9ecef; color: #495057; }
 
 .steps-container {
   padding: 1rem 1.5rem 1.5rem;
@@ -89,20 +88,14 @@ code {
   border-radius: 6px;
   border: 2px solid #e9ecef;
   background: #fff;
-  transition: all 0.2s ease;
 }
 .step-item.current {
   border-color: #007bff;
   background: #e7f3ff;
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
-  transform: scale(1.02);
 }
 .step-item.completed {
   background: #f8f9fa;
-  opacity: 0.8;
-}
-.step-item.pending {
-  background: #fff;
+  opacity: 0.7;
 }
 .step-header {
   display: flex;
@@ -114,27 +107,22 @@ code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #e9ecef;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #495057;
   flex-shrink: 0;
 }
 .step-item.current .step-index {
   background: #007bff;
   color: white;
-  animation: pulse 2s infinite;
 }
 .step-item.completed .step-index {
   background: #28a745;
   color: white;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
 }
 .step-name {
   font-weight: 600;
@@ -155,7 +143,6 @@ code {
   font-size: 0.875rem;
   color: #495057;
   white-space: pre-wrap;
-  word-wrap: break-word;
   line-height: 1.5;
 }
 .step-item.current .step-description {
@@ -163,79 +150,40 @@ code {
   border: 1px solid #d0e7ff;
 }
 .current-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
   padding: 4px 10px;
   background: #007bff;
   color: white;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
-.current-indicator::before {
-  content: "▶";
-  font-size: 0.6rem;
+.review-badge {
+  padding: 4px 10px;
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 .empty-state {
   text-align: center;
   padding: 3rem;
   color: #666;
 }
-.confirmation-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-left: 0.5rem;
-}
-.confirmation-badge.confirmed {
-  background: #d4edda;
-  color: #155724;
-}
-.confirmation-badge.awaiting {
-  background: #fff3cd;
-  color: #856404;
-}
-.confirm-button {
-  padding: 6px 16px;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.confirm-button:hover {
-  background: #218838;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-}
-.confirm-button:active {
-  transform: translateY(0);
-}
 .messages-container {
   margin-top: 0.75rem;
   padding: 0.75rem;
-  background: #f1f8ff;
+  background: #f8f9fa;
   border-radius: 4px;
-  border-left: 3px solid #0366d6;
+  border-left: 3px solid #6c757d;
 }
 .messages-header {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #0366d6;
+  color: #6c757d;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
   margin-bottom: 0.5rem;
 }
 .message-item {
@@ -246,19 +194,11 @@ code {
   font-size: 0.875rem;
   border: 1px solid #e1e4e8;
 }
-.message-item.question {
-  border-color: #f0ad4e;
-  background: #fffdf5;
-}
-.message-item.question.answered {
-  border-color: #28a745;
-  background: #f0fff4;
-}
 .message-item:last-child {
   margin-bottom: 0;
 }
 .message-time {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #6a737d;
   margin-bottom: 0.25rem;
   font-family: "SF Mono", Monaco, monospace;
@@ -266,57 +206,6 @@ code {
 .message-content {
   color: #24292e;
   line-height: 1.4;
-}
-.message-type {
-  display: inline-block;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin-left: 0.5rem;
-}
-.message-type.question {
-  background: #fff3cd;
-  color: #856404;
-}
-.message-reply {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: #e8f5e9;
-  border-radius: 4px;
-  border-left: 3px solid #28a745;
-}
-.message-reply-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #28a745;
-  text-transform: uppercase;
-  margin-bottom: 0.25rem;
-}
-.reply-form {
-  margin-top: 0.5rem;
-  display: flex;
-  gap: 0.5rem;
-}
-.reply-input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.875rem;
-}
-.reply-button {
-  padding: 0.5rem 1rem;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.reply-button:hover {
-  background: #0056b3;
 }
 .step-item.current .messages-container {
   background: #fff;
@@ -339,8 +228,8 @@ code {
 
   {{if not .Runs}}
   <div class="empty-state">
-    <p>No runs found in the database.</p>
-    <p>Use <code>wk start</code> in the CLI to create one.</p>
+    <p>No runs found.</p>
+    <p>Use <code>wk start</code> to create one.</p>
   </div>
   {{else}}
   {{range .Runs}}
@@ -351,7 +240,7 @@ code {
       <div class="run-meta">
         <span>Started: {{formatTime .StartedAt}}</span>
         <span>Status: <span class="status-badge status-{{.Status}}">{{.Status}}</span></span>
-        <span>Current step: {{.CurrentStepIndex}}</span>
+        <span>Step: {{.CurrentStepIndex}}</span>
       </div>
     </div>
 
@@ -360,7 +249,7 @@ code {
       {{ $messages := index $.MessagesByRun .ID }}
       {{ $currentIdx := .CurrentStepIndex }}
       {{if not $steps}}
-      <p class="empty-state">No steps recorded for this run.</p>
+      <p class="empty-state">No steps recorded.</p>
       {{else}}
       {{range $steps}}
       {{ $stepMessages := index $messages .Index }}
@@ -371,20 +260,8 @@ code {
           {{if eq .Index $currentIdx}}
           <span class="current-indicator">Active</span>
           {{end}}
-          {{if .RequiresConfirmation}}
-            {{if .ConfirmedAt}}
-              <span class="confirmation-badge confirmed">✓ Confirmed</span>
-            {{else}}
-              {{if and (eq .Index $currentIdx) (ne $run.Status "completed")}}
-                <form hx-post="/confirm" hx-target=".content" hx-select=".content" hx-swap="outerHTML" style="display: inline; margin-left: 0.5rem;">
-                  <input type="hidden" name="run_id" value="{{$run.ID}}">
-                  <input type="hidden" name="step_index" value="{{.Index}}">
-                  <button type="submit" class="confirm-button">Confirm Step</button>
-                </form>
-              {{else}}
-                <span class="confirmation-badge awaiting">⏳ Awaiting</span>
-              {{end}}
-            {{end}}
+          {{if and .RequiresConfirmation (eq .Index $currentIdx)}}
+          <span class="review-badge">Review Required</span>
           {{end}}
           <span class="step-id">{{.ID}}</span>
         </div>
@@ -393,25 +270,11 @@ code {
         {{end}}
         {{if $stepMessages}}
         <div class="messages-container">
-          <div class="messages-header">Agent Messages</div>
+          <div class="messages-header">Agent Status</div>
           {{range $stepMessages}}
-          <div class="message-item {{if .IsQuestion}}question{{if .Reply}} answered{{end}}{{end}}">
-            <div class="message-time">{{formatTime .CreatedAt}}{{if .IsQuestion}}<span class="message-type question">Question</span>{{end}}</div>
+          <div class="message-item">
+            <div class="message-time">{{formatTime .CreatedAt}}</div>
             <div class="message-content">{{.Content}}</div>
-            {{if .IsQuestion}}
-              {{if .Reply}}
-              <div class="message-reply">
-                <div class="message-reply-label">Reply</div>
-                {{.Reply}}
-              </div>
-              {{else}}
-              <form class="reply-form" hx-post="/reply" hx-target=".content" hx-select=".content" hx-swap="outerHTML">
-                <input type="hidden" name="message_id" value="{{.ID}}">
-                <input type="text" name="reply" class="reply-input" placeholder="Type your reply..." required>
-                <button type="submit" class="reply-button">Reply</button>
-              </form>
-              {{end}}
-            {{end}}
           </div>
           {{end}}
         </div>

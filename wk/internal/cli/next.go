@@ -16,8 +16,7 @@ func newNextCmd() *cobra.Command {
 		Short: "Advance to the next workflow step",
 		Long: `Advance the current run to the next step.
 
-If the run is already at the last step, it is marked as completed.
-If the current step requires confirmation but has not been confirmed, the command fails.`,
+If the run is already at the last step, it is marked as completed.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			db, err := storage.Open(dbFile)
 			if err != nil {
@@ -27,22 +26,6 @@ If the current step requires confirmation but has not been confirmed, the comman
 
 			ctx := context.Background()
 
-			// Check if current step is awaiting confirmation
-			run, step, _, err := db.LatestRunWithCurrentStep(ctx)
-			if err != nil {
-				if errors.Is(err, storage.ErrNoRuns) {
-					fmt.Fprintln(cmd.OutOrStdout(), "No runs found. Use 'wk start' to create a new run.")
-					return nil
-				}
-				return err
-			}
-
-			// Block if awaiting confirmation
-			if step.RequiresConfirmation && step.ConfirmedAt == nil {
-				return fmt.Errorf("current step requires confirmation before advancing (use web UI to confirm)")
-			}
-
-			// Proceed with advance logic
 			run, step, total, err := db.AdvanceLatestRun(ctx)
 			if err != nil {
 				if errors.Is(err, storage.ErrNoRuns) {
