@@ -45,3 +45,53 @@ go run ./cmd/web
 ```
 
 Acesse em `http://localhost:8080`
+
+## Usar como SKILL no Claude Code
+
+O `wk` pode ser usado como uma SKILL (habilidade) no Claude Code para agentes autônomos estruturarem seu trabalho em workflows sequenciais.
+
+### Setup
+
+1. Copie a pasta `skill/` para sua pasta `.claude/skills/wk`:
+
+```bash
+mkdir -p ~/.claude/skills
+cp -r ./skill ~/.claude/skills/wk
+```
+
+Ou para uso compartilhado em projeto (dentro do repositório):
+
+```bash
+mkdir -p .claude/skills
+cp -r ./skill .claude/skills/wk
+```
+
+2. Reinicie o Claude Code para que a skill seja reconhecida.
+
+3. Defina seu workflow em `$HOME/.local/wk/workflow.yaml` (veja exemplo acima na seção "Uso com Agentes de IA").
+
+### Como Funciona
+
+Quando um agente tem acesso à skill `wk-workflow-manager`:
+
+1. O agente reconhece que há uma ferramenta de workflow disponível
+2. Pode usar comandos como:
+   - `wk start` - inicia o workflow
+   - `wk status` - verifica o status atual
+   - `wk next` - passa para o próximo passo
+   - `wk say "mensagem"` - adiciona notas ao passo atual
+
+3. O agente executa o trabalho passo a passo de forma controlada e rastreável
+
+### Exemplo de Uso
+
+Você pode instruir o Claude Code ou outro agente assim:
+
+```
+Você tem acesso à skill `wk-workflow-manager` para estruturar seu trabalho.
+Use-a para executar o workflow definido em sua configuração.
+Comece com `wk start` e execute cada passo sequencialmente usando `wk status`,
+`wk say`, e `wk next`.
+```
+
+Para mais detalhes, consulte [skill/SKILL.md](skill/SKILL.md).
