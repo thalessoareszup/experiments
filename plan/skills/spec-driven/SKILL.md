@@ -55,7 +55,7 @@ plan step --plan $PLAN_ID --title "Validate: Verify against specification"
 plan progress --step <specify-step-id> --status in_progress
 ```
 
-Create `specs/<feature>/spec.md`:
+Create `specs/000X-<feature>/spec.md`:
 
 ```markdown
 # Feature: <Feature Name>
@@ -342,15 +342,3 @@ plan complete --step $STEP1
 
 # Continue through phases...
 ```
-
----
-
-## When NOT to Use
-
-Skip spec-driven development for:
-- Bug fixes with clear reproduction steps
-- Simple refactoring tasks
-- Documentation updates
-- Small, well-defined changes (< 1 hour)
-
-As noted in [Martin Fowler's analysis](https://martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html), using a full SDD workflow for small problems is "like using a sledgehammer to crack a nut."

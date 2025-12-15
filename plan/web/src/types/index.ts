@@ -24,7 +24,11 @@ export interface Step {
   updated_at: string;
 }
 
-export interface SSEEvent {
+export interface WebSocketMessage {
   type: string;
   data: Plan | Step | { id: string };
+  timestamp: string;
+  id: string;
 }
+
+export type ConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';

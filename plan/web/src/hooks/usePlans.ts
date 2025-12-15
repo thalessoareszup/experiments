@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Plan, Step } from '../types';
-import { useSSE } from './useSSE';
+import { useWebSocket } from './useWebSocket';
 
 const API_BASE = '/api';
 
@@ -71,7 +71,7 @@ export function usePlans() {
     })));
   }, []);
 
-  const { connected } = useSSE(`${API_BASE}/events`, {
+  const { connectionState } = useWebSocket(`${API_BASE}/ws`, {
     onPlanCreated: handlePlanCreated,
     onPlanUpdated: handlePlanUpdated,
     onPlanDeleted: handlePlanDeleted,
@@ -84,5 +84,12 @@ export function usePlans() {
     fetchPlans();
   }, [fetchPlans]);
 
-  return { plans, loading, error, connected, refetch: fetchPlans };
+  // Refetch on reconnection to ensure consistency
+  useEffect(() => {
+    if (connectionState === 'connected') {
+      fetchPlans();
+    }
+  }, [connectionState, fetchPlans]);
+
+  return { plans, loading, error, connected: connectionState === 'connected', refetch: fetchPlans };
 }
