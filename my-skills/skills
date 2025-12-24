@@ -1,0 +1,164 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Get the real directory of this script (follows symlinks)
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+SKILLS_SOURCE="$SCRIPT_DIR"
+
+# Default target directory
+TARGET_DIR="./skills"
+SKILL_NAME=""
+COMMAND=""
+
+# Color output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+usage() {
+    cat <<EOF
+Usage: skills [COMMAND] [OPTIONS]
+
+Commands:
+  list              List all available skills with descriptions
+  install <name>    Install a skill
+  
+Options:
+  --claude          Install to ~/.claude/skills instead of ./skills
+  -h, --help        Show this help message
+
+Examples:
+  skills list
+  skills install zup-color-branding
+  skills install zup-color-branding --claude
+
+EOF
+}
+
+# Extract name and description from SKILL.md
+parse_skill_metadata() {
+    local skill_dir="$1"
+    local skill_file="$skill_dir/SKILL.md"
+    
+    if [[ ! -f "$skill_file" ]]; then
+        return 1
+    fi
+    
+    # Extract name from frontmatter
+    local name=$(sed -n 's/^name: \(.*\)$/\1/p' "$skill_file" | head -1)
+    # Extract description from frontmatter
+    local desc=$(sed -n 's/^description: \(.*\)$/\1/p' "$skill_file" | head -1)
+    
+    if [[ -n "$name" ]]; then
+        echo "$name|$desc"
+        return 0
+    fi
+    return 1
+}
+
+# List all skills
+list_skills() {
+    echo -e "${BLUE}Available Skills:${NC}\n"
+    
+    local found=0
+    for skill_dir in "$SKILLS_SOURCE"/*/; do
+        # Skip if not a directory
+        [[ ! -d "$skill_dir" ]] && continue
+        
+        # Try to parse metadata
+        if metadata=$(parse_skill_metadata "$skill_dir"); then
+            found=$((found + 1))
+            IFS='|' read -r name desc <<< "$metadata"
+            printf "${GREEN}%-30s${NC} %s\n" "$name" "$desc"
+        fi
+    done
+    
+    if [[ $found -eq 0 ]]; then
+        echo "No skills found in $SKILLS_SOURCE"
+        return 1
+    fi
+}
+
+# Install a skill
+install_skill() {
+    local skill_name="$1"
+    local source_dir="$SKILLS_SOURCE/$skill_name"
+    local target_path="$TARGET_DIR/$skill_name"
+    
+    # Check if source exists
+    if [[ ! -d "$source_dir" ]]; then
+        echo -e "${RED}Error: Skill '$skill_name' not found in $SKILLS_SOURCE${NC}" >&2
+        return 1
+    fi
+    
+    # Check if SKILL.md exists
+    if [[ ! -f "$source_dir/SKILL.md" ]]; then
+        echo -e "${RED}Error: $skill_name does not contain SKILL.md${NC}" >&2
+        return 1
+    fi
+    
+    # Create target directory if needed
+    mkdir -p "$TARGET_DIR"
+    
+    # Check if already installed
+    if [[ -d "$target_path" ]]; then
+        echo -e "${RED}Error: Skill already installed at $target_path${NC}" >&2
+        return 1
+    fi
+    
+    # Copy the skill
+    cp -r "$source_dir" "$target_path"
+    echo -e "${GREEN}✓ Installed $skill_name to $target_path${NC}"
+}
+
+# Main
+main() {
+    [[ $# -eq 0 ]] && { usage; exit 0; }
+    
+    COMMAND="$1"
+    shift || true
+    
+    case "$COMMAND" in
+        list)
+            list_skills
+            ;;
+        install)
+            if [[ $# -eq 0 ]]; then
+                echo -e "${RED}Error: skill name required${NC}" >&2
+                echo "Usage: skills install <name> [--claude]" >&2
+                return 1
+            fi
+            
+            SKILL_NAME="$1"
+            shift || true
+            
+            # Check for --claude flag
+            while [[ $# -gt 0 ]]; do
+                case "$1" in
+                    --claude)
+                        TARGET_DIR="$HOME/.claude/skills"
+                        ;;
+                    *)
+                        echo -e "${RED}Error: Unknown option $1${NC}" >&2
+                        return 1
+                        ;;
+                esac
+                shift || true
+            done
+            
+            install_skill "$SKILL_NAME"
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown command '$COMMAND'${NC}" >&2
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

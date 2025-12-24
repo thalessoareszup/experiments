@@ -21,3 +21,7 @@ Ferramenta para que agentes de IA possam comunicar seus planos de execução
 ## lg
 
 Lê JSON do stdin e rendeiza numa TUI
+
+## my-skills
+
+Skills para usar com agentes de IA
