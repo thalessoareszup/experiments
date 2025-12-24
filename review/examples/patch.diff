@@ -1,0 +1,59 @@
+diff --git a/src/auth.ts b/src/auth.ts
+index 1234567..abcdefg 100644
+--- a/src/auth.ts
++++ b/src/auth.ts
+@@ -12,6 +12,8 @@ import { User } from './types';
+
+ const TOKEN_KEY = 'auth_token';
+
++const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
++
+ export async function login(email: string, password: string): Promise<User> {
+   const response = await fetch('/api/auth/login', {
+     method: 'POST',
+@@ -23,6 +25,7 @@ export async function login(email: string, password: string): Promise<User> {
+   }
+
+   const data = await response.json();
++  data.expiresAt = Date.now() + SESSION_TIMEOUT;
+   localStorage.setItem(TOKEN_KEY, JSON.stringify(data));
+   return data.user;
+ }
+@@ -45,3 +48,15 @@ export function getToken(): string | null {
+   const data = localStorage.getItem(TOKEN_KEY);
+   return data ? JSON.parse(data).token : null;
+ }
++
++export function isSessionValid(): boolean {
++  const data = localStorage.getItem(TOKEN_KEY);
++  if (!data) return false;
++
++  const parsed = JSON.parse(data);
++  if (Date.now() > parsed.expiresAt) {
++    localStorage.removeItem(TOKEN_KEY);
++    return false;
++  }
++  return true;
++}
+diff --git a/src/api.ts b/src/api.ts
+index 9876543..fedcba9 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -1,10 +1,16 @@
+-import { getToken } from './auth';
++import { getToken, isSessionValid, logout } from './auth';
+
+ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
++  if (!isSessionValid()) {
++    logout();
++    throw new Error('Session expired');
++  }
++
+   const token = getToken();
+   return fetch(url, {
+     ...options,
+     headers: {
++      'Content-Type': 'application/json',
+       ...options.headers,
+       Authorization: token ? `Bearer ${token}` : '',
+     },

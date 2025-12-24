@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "title": "Add session timeout and validation",
+  "createdAt": "2025-12-24T12:00:00Z",
+  "base": { "ref": "main" },
+  "head": { "ref": "feature/session-timeout" },
+  "diff": {
+    "patch": "patch.diff"
+  },
+  "comments": [
+    {
+      "id": "c1",
+      "order": 1,
+      "severity": "note",
+      "message": "Added a 30-minute session timeout constant. This is configurable but hardcoded for now - we can move it to environment config later if needed.",
+      "anchor": { "file": "src/auth.ts", "diffLineStart": 5, "diffLineEnd": 6 }
+    },
+    {
+      "id": "c2",
+      "order": 2,
+      "severity": "note",
+      "message": "Store the expiration timestamp alongside the token. This allows us to check session validity without making a server round-trip.",
+      "anchor": { "file": "src/auth.ts", "diffLineStart": 14, "diffLineEnd": 14 }
+    },
+    {
+      "id": "c3",
+      "order": 3,
+      "severity": "note",
+      "message": "New helper function that checks if the session is still valid. If expired, it cleans up localStorage automatically.",
+      "anchor": { "file": "src/auth.ts", "diffLineStart": 22, "diffLineEnd": 33 }
+    },
+    {
+      "id": "c4",
+      "order": 4,
+      "severity": "warning",
+      "message": "The API wrapper now validates the session before each request. If expired, it logs out the user and throws an error that the UI can catch to redirect to login.",
+      "anchor": { "file": "src/api.ts", "diffLineStart": 6, "diffLineEnd": 10 }
+    },
+    {
+      "id": "c5",
+      "order": 5,
+      "severity": "nit",
+      "message": "Also added the Content-Type header that was missing before.",
+      "anchor": { "file": "src/api.ts", "diffLineStart": 15, "diffLineEnd": 15 }
+    }
+  ]
+}

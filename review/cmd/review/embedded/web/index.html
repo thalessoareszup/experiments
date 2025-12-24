@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>review viewer</title>
+  <style>
+    :root {
+      /* Neutral base for text areas */
+      --bg: #121214;
+      --panel: #1c1c1f;
+      --code-bg: #18181b;
+      --text: #e4e4e7;
+      --muted: #a1a1aa;
+      --border: #27272a;
+      /* Zup accent colors */
+      --accent: #852838;          /* Burgundy Sensibility */
+      --accent-light: #5C1C27;    /* Connection Gradient */
+      --coral: #CC7958;           /* Coral Boldness */
+      --burgundy: #260A12;        /* Burgundy Excellence */
+      /* Diff colors */
+      --add-bg: rgba(34, 197, 94, 0.15);
+      --del-bg: rgba(239, 68, 68, 0.15);
+      --ctx-bg: transparent;
+      --hl: rgba(204, 121, 88, 0.25);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    header {
+      padding: 16px 20px;
+      border-bottom: 2px solid var(--accent);
+      background: linear-gradient(135deg, #260A12 0%, #5C1C27 100%);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 16px;
+      margin: 0 0 8px 0;
+      font-weight: 600;
+      color: #DED4D4;
+    }
+
+    header .meta {
+      font-size: 12px;
+      color: #AD9797;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    header input[type="file"] {
+      font-size: 12px;
+      color: #DED4D4;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+
+    header input[type="file"]:hover {
+      background: rgba(255,255,255,0.15);
+    }
+
+    header a { color: var(--coral); text-decoration: none; }
+    header a:hover { text-decoration: underline; }
+
+    .refs {
+      display: flex;
+      gap: 16px;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .refs .ref-label {
+      color: #AD9797;
+    }
+
+    .refs .ref-value {
+      color: #DED4D4;
+      font-weight: 500;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .panel .panel-hd {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--accent);
+      background: linear-gradient(90deg, rgba(92,28,39,0.3) 0%, transparent 100%);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel .panel-bd { padding: 12px 14px; }
+
+    .comment {
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      background: rgba(0,0,0,0.2);
+      margin-bottom: 12px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .comment.active {
+      border-left-color: var(--coral);
+      background: rgba(204, 121, 88, 0.08);
+    }
+
+    .comment .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .comment .title {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .comment .sev {
+      font-size: 11px;
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 999px;
+      color: var(--muted);
+    }
+
+    .comment button {
+      width: 100%;
+      margin-top: 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+
+    .comment button:hover {
+      border-color: var(--coral);
+      color: var(--coral);
+    }
+
+    .comment pre {
+      margin: 8px 0 0 0;
+      font-family: var(--sans);
+      font-size: 13px;
+      white-space: pre-wrap;
+      line-height: 1.35;
+    }
+
+    .file {
+      margin-bottom: 14px;
+    }
+
+    .file .file-hd {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--accent);
+      background: rgba(38, 10, 18, 0.4);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .file .file-hd .path { color: var(--coral); font-weight: 500; }
+
+    .diff {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .dline {
+      display: grid;
+      grid-template-columns: 48px 48px 1fr;
+      gap: 0;
+      border-bottom: 1px solid #27272a;
+    }
+
+    .dline .ln {
+      padding: 0 8px;
+      text-align: right;
+      color: #71717a;
+      user-select: none;
+    }
+
+    .dline .code {
+      padding: 0 10px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .dline.ctx { background: transparent; }
+    .dline.add { background: var(--add-bg); }
+    .dline.del { background: var(--del-bg); }
+    .dline.hunk { background: rgba(133, 40, 56, 0.2); color: var(--coral); }
+    .dline.meta { background: rgba(39, 39, 42, 0.5); color: #71717a; }
+
+    .dline.highlight {
+      background: rgba(204, 121, 88, 0.12);
+    }
+
+    .muted { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="title">review viewer</h1>
+    <div class="meta">
+      <span id="createdAt"></span>
+      <div id="refs" class="refs" style="display: none;">
+        <span><span class="ref-label">base:</span> <span id="baseRef" class="ref-value"></span></span>
+        <span><span class="ref-label">head:</span> <span id="headRef" class="ref-value"></span></span>
+      </div>
+      <span class="muted">Load:</span>
+      <input id="reviewInput" type="file" accept="application/json" title="Load review JSON" />
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" aria-label="Comments">
+      <div class="panel-hd"><span>Comments</span><span id="commentCount" class="muted"></span></div>
+      <div class="panel-bd">
+        <div id="comments"></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Diff">
+      <div class="panel-hd"><span>Diff</span><span id="fileCount" class="muted"></span></div>
+      <div class="panel-bd" id="diff"></div>
+    </section>
+  </main>
+
+<script>
+  function el(tag, attrs = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') node.className = v;
+      else if (k === 'dataset') Object.assign(node.dataset, v);
+      else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, String(v));
+    }
+    for (const child of children) {
+      if (child == null) continue;
+      if (typeof child === 'string') node.appendChild(document.createTextNode(child));
+      else node.appendChild(child);
+    }
+    return node;
+  }
+
+  /**
+   * Minimal unified diff parser.
+   * Produces: [{ path, oldPath, lines: [{kind, text, oldNo, newNo, diffLineNo}] }]
+   * Where diffLineNo is 1-based *per file* counting only diff content lines (hunks + +/-/ctx).
+   */
+  function parseUnifiedDiff(diffText) {
+    const lines = diffText.replace(/\r\n/g, '\n').split('\n');
+    const files = [];
+    let cur = null;
+    let oldNo = null;
+    let newNo = null;
+    let diffLineNo = 0;
+
+    function startFile() {
+      cur = { path: null, oldPath: null, lines: [] };
+      oldNo = null;
+      newNo = null;
+      diffLineNo = 0;
+      files.push(cur);
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      if (l.startsWith('diff --git ')) {
+        startFile();
+        cur.lines.push({ kind: 'meta', text: l, oldNo: null, newNo: null, diffLineNo: null });
+        continue;
+      }
+      if (!cur) {
+        // ignore leading junk
+        continue;
+      }
+
+      if (l.startsWith('--- ')) {
+        cur.lines.push({ kind: 'meta', text: l, oldNo: null, newNo: null, diffLineNo: null });
+        const p = l.slice(4).trim();
+        cur.oldPath = p.startsWith('a/') ? p.slice(2) : p;
+        continue;
+      }
+
+      if (l.startsWith('+++ ')) {
+        cur.lines.push({ kind: 'meta', text: l, oldNo: null, newNo: null, diffLineNo: null });
+        const p = l.slice(4).trim();
+        cur.path = p.startsWith('b/') ? p.slice(2) : p;
+        continue;
+      }
+
+      const hunk = l.match(/^@@\s+-(\d+)(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@/);
+      if (hunk) {
+        oldNo = parseInt(hunk[1], 10);
+        newNo = parseInt(hunk[3], 10);
+        diffLineNo++;
+        cur.lines.push({ kind: 'hunk', text: l, oldNo: null, newNo: null, diffLineNo });
+        continue;
+      }
+
+      // special meta in-file lines
+      if (l.startsWith('index ') || l.startsWith('new file mode') || l.startsWith('deleted file mode') || l.startsWith('similarity index') || l.startsWith('rename from') || l.startsWith('rename to')) {
+        cur.lines.push({ kind: 'meta', text: l, oldNo: null, newNo: null, diffLineNo: null });
+        continue;
+      }
+
+      // actual diff lines (counted)
+      if (l.startsWith('+') && !l.startsWith('+++')) {
+        diffLineNo++;
+        cur.lines.push({ kind: 'add', text: l, oldNo: null, newNo, diffLineNo });
+        newNo = (newNo == null) ? null : (newNo + 1);
+        continue;
+      }
+      if (l.startsWith('-') && !l.startsWith('---')) {
+        diffLineNo++;
+        cur.lines.push({ kind: 'del', text: l, oldNo, newNo: null, diffLineNo });
+        oldNo = (oldNo == null) ? null : (oldNo + 1);
+        continue;
+      }
+      if (l.startsWith('\\ No newline at end of file')) {
+        // not counted
+        cur.lines.push({ kind: 'meta', text: l, oldNo: null, newNo: null, diffLineNo: null });
+        continue;
+      }
+
+      // context line (or empty end)
+      if (oldNo != null || newNo != null) {
+        diffLineNo++;
+        cur.lines.push({ kind: 'ctx', text: l, oldNo, newNo, diffLineNo });
+        oldNo = (oldNo == null) ? null : (oldNo + 1);
+        newNo = (newNo == null) ? null : (newNo + 1);
+      } else if (l.trim() !== '') {
+        cur.lines.push({ kind: 'meta', text: l, oldNo: null, newNo: null, diffLineNo: null });
+      }
+    }
+
+    // Remove empty trailing file created by diff text that ends with diff --git but no content
+    return files.filter(f => f.path || f.oldPath || f.lines.length > 0);
+  }
+
+  function formatAnchor(a) {
+    if (!a) return '';
+    const end = (a.diffLineEnd && a.diffLineEnd !== a.diffLineStart) ? `-${a.diffLineEnd}` : '';
+    return `${a.file}:${a.diffLineStart}${end}`;
+  }
+
+  function setHeader(review) {
+    document.getElementById('title').textContent = review.title || 'review viewer';
+    document.getElementById('createdAt').textContent = review.createdAt ? review.createdAt : '';
+    const base = review.base?.ref || review.base?.commit;
+    const head = review.head?.ref || review.head?.commit;
+    const refsEl = document.getElementById('refs');
+    if (base || head) {
+      document.getElementById('baseRef').textContent = base || '-';
+      document.getElementById('headRef').textContent = head || '-';
+      refsEl.style.display = 'flex';
+    } else {
+      refsEl.style.display = 'none';
+    }
+  }
+
+  function clearUI() {
+    document.getElementById('comments').innerHTML = '';
+    document.getElementById('diff').innerHTML = '';
+    document.getElementById('commentCount').textContent = '';
+    document.getElementById('fileCount').textContent = '';
+  }
+
+  function highlightRange(file, start, end) {
+    // clear previous
+    document.querySelectorAll('.dline.highlight').forEach(n => n.classList.remove('highlight'));
+    const ids = [];
+    for (let n = start; n <= end; n++) ids.push(`dl:${file}:${n}`);
+    let first = null;
+    for (const id of ids) {
+      const node = document.getElementById(id);
+      if (node) {
+        node.classList.add('highlight');
+        if (!first) first = node;
+      }
+    }
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function render(review, diffText) {
+    clearUI();
+    setHeader(review);
+
+    const files = parseUnifiedDiff(diffText || '');
+    const fileByPath = new Map(files.map(f => [f.path || f.oldPath || '(unknown)', f]));
+
+    // comments
+    const comments = Array.isArray(review.comments) ? [...review.comments] : [];
+    comments.sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.id || '').localeCompare(String(b.id || '')));
+
+    document.getElementById('commentCount').textContent = `${comments.length} total`;
+
+    const commentsRoot = document.getElementById('comments');
+    for (const c of comments) {
+      const anchorTxt = formatAnchor(c.anchor);
+      const commentEl = el('div', { class: 'comment' },
+        el('div', { class: 'row' },
+          el('div', { class: 'title' }, `#${c.order ?? '?'}  ${anchorTxt}`),
+          el('div', { class: 'sev' }, c.severity || 'note')
+        ),
+        el('pre', {}, c.message || ''),
+        el('button', {
+          onclick: () => {
+            const a = c.anchor;
+            if (!a) return;
+            document.querySelectorAll('.comment.active').forEach(n => n.classList.remove('active'));
+            commentEl.classList.add('active');
+            highlightRange(a.file, a.diffLineStart, a.diffLineEnd || a.diffLineStart);
+          }
+        }, anchorTxt ? `Jump to ${anchorTxt}` : 'Jump')
+      );
+      commentsRoot.appendChild(commentEl);
+    }
+
+    // diff
+    document.getElementById('fileCount').textContent = `${files.length} file(s)`;
+    const diffRoot = document.getElementById('diff');
+
+    for (const f of files) {
+      const path = f.path || f.oldPath || '(unknown)';
+      const fileEl = el('div', { class: 'file panel' },
+        el('div', { class: 'file-hd' },
+          el('div', {}, el('span', { class: 'path' }, path)),
+          el('div', { class: 'muted' }, `${f.lines.filter(x => x.diffLineNo != null).length} diff line(s)`)
+        ),
+        el('div', { class: 'diff' })
+      );
+
+      const diffEl = fileEl.querySelector('.diff');
+      for (const dl of f.lines) {
+        const kind = dl.kind;
+        const cls = (kind === 'add' || kind === 'del' || kind === 'ctx' || kind === 'hunk' || kind === 'meta') ? kind : 'ctx';
+
+        const id = (dl.diffLineNo != null && f.path)
+          ? `dl:${f.path}:${dl.diffLineNo}`
+          : null;
+
+        const line = el('div', { class: `dline ${cls}`, ...(id ? { id } : {}) },
+          el('div', { class: 'ln' }, dl.oldNo == null ? '' : String(dl.oldNo)),
+          el('div', { class: 'ln' }, dl.newNo == null ? '' : String(dl.newNo)),
+          el('div', { class: 'code' }, dl.text)
+        );
+        diffEl.appendChild(line);
+      }
+
+      diffRoot.appendChild(fileEl);
+    }
+  }
+
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => resolve(reader.result);
+      reader.readAsText(file);
+    });
+  }
+
+  function promptForFile(accept, message) {
+    return new Promise((resolve) => {
+      if (message) alert(message);
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = accept;
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.addEventListener('change', async () => {
+        const f = input.files?.[0];
+        input.remove();
+        if (!f) return resolve(null);
+        const text = await readFileAsText(f);
+        resolve(text);
+      }, { once: true });
+      input.click();
+    });
+  }
+
+  async function loadReview(reviewText) {
+    const review = JSON.parse(reviewText);
+    let patchText = review.diff?.unified || '';
+
+    if (!patchText && review.diff?.patch) {
+      patchText = await promptForFile(
+        '.diff,.patch',
+        `Select the patch file: ${review.diff.patch}`
+      );
+      if (!patchText) return;
+    }
+
+    render(review, patchText);
+  }
+
+  function main() {
+    // Check for injected data (from server --review flag)
+    if (window.__REVIEW__) {
+      render(window.__REVIEW__, window.__PATCH__ || '');
+    }
+
+    // File picker for loading other reviews
+    document.getElementById('reviewInput').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const text = await readFileAsText(file);
+        await loadReview(text);
+      } catch (err) {
+        alert(String(err));
+      }
+    });
+  }
+
+  main();
+</script>
+</body>
+</html>
