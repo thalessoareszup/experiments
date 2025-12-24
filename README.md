@@ -16,4 +16,8 @@ Uma ferramenta para oquestrar agentes de IA em workflows pré-definidos.
 
 ## plan
 
-Ferramente para que agentes de IA possam comunicar seus planos de execução
+Ferramenta para que agentes de IA possam comunicar seus planos de execução
+
+## lg
+
+Lê JSON do stdin e rendeiza numa TUI
