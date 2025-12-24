@@ -100,10 +100,19 @@
       grid-template-columns: 360px 1fr;
       gap: 12px;
       padding: 12px;
+      align-items: start;
     }
 
     @media (max-width: 900px) {
       main { grid-template-columns: 1fr; }
+      .comments-panel { position: static !important; max-height: none !important; }
+    }
+
+    .comments-panel {
+      position: sticky;
+      top: 76px; /* header height + gap */
+      max-height: calc(100vh - 88px);
+      overflow-y: auto;
     }
 
     .panel {
@@ -140,6 +149,12 @@
     .comment.active {
       border-left-color: var(--coral);
       background: rgba(204, 121, 88, 0.08);
+    }
+
+    .comment.pinned {
+      border-left-color: var(--coral);
+      background: rgba(204, 121, 88, 0.12);
+      box-shadow: 0 0 0 1px var(--coral);
     }
 
     .comment .row {
@@ -204,9 +219,63 @@
       justify-content: space-between;
       gap: 10px;
       align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .file .file-hd:hover {
+      background: rgba(38, 10, 18, 0.6);
     }
 
     .file .file-hd .path { color: var(--coral); font-weight: 500; }
+
+    .file .file-hd .viewed-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+
+    .file .file-hd .viewed-toggle:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
+
+    .file .file-hd .viewed-toggle input {
+      accent-color: var(--coral);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .file.viewed .file-hd {
+      background: rgba(34, 197, 94, 0.1);
+      border-bottom-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .file.viewed .file-hd .path {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .file.viewed .diff {
+      display: none;
+    }
+
+    .file .file-hd .toggle-icon {
+      transition: transform 0.15s;
+      color: var(--muted);
+    }
+
+    .file.viewed .file-hd .toggle-icon {
+      transform: rotate(-90deg);
+    }
 
     .diff {
       font-family: var(--mono);
@@ -262,7 +331,7 @@
   </header>
 
   <main>
-    <section class="panel" aria-label="Comments">
+    <section class="panel comments-panel" aria-label="Comments">
       <div class="panel-hd"><span>Comments</span><span id="commentCount" class="muted"></span></div>
       <div class="panel-bd">
         <div id="comments"></div>
@@ -394,6 +463,14 @@
     return `${a.file}:${a.diffLineStart}${end}`;
   }
 
+  function formatAnchorShort(a) {
+    if (!a) return '';
+    const end = (a.diffLineEnd && a.diffLineEnd !== a.diffLineStart) ? `-${a.diffLineEnd}` : '';
+    // Just the filename, not the full path
+    const filename = a.file ? a.file.split('/').pop() : '';
+    return `${filename}:${a.diffLineStart}${end}`;
+  }
+
   function setHeader(review) {
     document.getElementById('title').textContent = review.title || 'review viewer';
     document.getElementById('createdAt').textContent = review.createdAt ? review.createdAt : '';
@@ -409,11 +486,14 @@
     }
   }
 
+  let pinnedComment = null;
+
   function clearUI() {
     document.getElementById('comments').innerHTML = '';
     document.getElementById('diff').innerHTML = '';
     document.getElementById('commentCount').textContent = '';
     document.getElementById('fileCount').textContent = '';
+    pinnedComment = null;
   }
 
   function highlightRange(file, start, end) {
@@ -429,7 +509,30 @@
         if (!first) first = node;
       }
     }
-    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Expand the file if it's collapsed (viewed)
+    if (first) {
+      const fileEl = first.closest('.file');
+      if (fileEl?.classList.contains('viewed')) {
+        fileEl.classList.remove('viewed');
+        const checkbox = fileEl.querySelector('.viewed-toggle input');
+        if (checkbox) checkbox.checked = false;
+      }
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function pinComment(commentEl) {
+    // Remove previous pin
+    document.querySelectorAll('.comment.pinned').forEach(n => n.classList.remove('pinned'));
+    pinnedComment = commentEl;
+    commentEl.classList.add('pinned');
+    // Scroll the pinned comment into view within the comments panel
+    commentEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function unpinComment() {
+    document.querySelectorAll('.comment.pinned').forEach(n => n.classList.remove('pinned'));
+    pinnedComment = null;
   }
 
   function render(review, diffText) {
@@ -450,20 +553,28 @@
       const anchorTxt = formatAnchor(c.anchor);
       const commentEl = el('div', { class: 'comment' },
         el('div', { class: 'row' },
-          el('div', { class: 'title' }, `#${c.order ?? '?'}  ${anchorTxt}`),
+          el('div', { class: 'title' }, `#${c.order ?? '?'}`),
           el('div', { class: 'sev' }, c.severity || 'note')
         ),
         el('pre', {}, c.message || ''),
         el('button', {
+          title: anchorTxt || '',
           onclick: () => {
             const a = c.anchor;
             if (!a) return;
             document.querySelectorAll('.comment.active').forEach(n => n.classList.remove('active'));
             commentEl.classList.add('active');
+            pinComment(commentEl);
             highlightRange(a.file, a.diffLineStart, a.diffLineEnd || a.diffLineStart);
           }
-        }, anchorTxt ? `Jump to ${anchorTxt}` : 'Jump')
+        }, anchorTxt ? `Jump to ${formatAnchorShort(c.anchor)}` : 'Jump')
       );
+      // Click anywhere on comment to pin it (keeps it in view while scrolling)
+      commentEl.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON') {
+          pinComment(commentEl);
+        }
+      });
       commentsRoot.appendChild(commentEl);
     }
 
@@ -473,13 +584,34 @@
 
     for (const f of files) {
       const path = f.path || f.oldPath || '(unknown)';
+      const viewedCheckbox = el('input', { type: 'checkbox' });
       const fileEl = el('div', { class: 'file panel' },
         el('div', { class: 'file-hd' },
-          el('div', {}, el('span', { class: 'path' }, path)),
-          el('div', { class: 'muted' }, `${f.lines.filter(x => x.diffLineNo != null).length} diff line(s)`)
+          el('div', { style: 'display: flex; align-items: center; gap: 8px;' },
+            el('span', { class: 'toggle-icon' }, '▼'),
+            el('span', { class: 'path' }, path)
+          ),
+          el('div', { style: 'display: flex; align-items: center; gap: 12px;' },
+            el('span', { class: 'muted' }, `${f.lines.filter(x => x.diffLineNo != null).length} diff line(s)`),
+            el('label', { class: 'viewed-toggle' },
+              viewedCheckbox,
+              'Viewed'
+            )
+          )
         ),
         el('div', { class: 'diff' })
       );
+
+      viewedCheckbox.addEventListener('change', () => {
+        fileEl.classList.toggle('viewed', viewedCheckbox.checked);
+      });
+
+      // Click on file header (outside checkbox) toggles collapse
+      fileEl.querySelector('.file-hd').addEventListener('click', (e) => {
+        if (e.target === viewedCheckbox || e.target.closest('.viewed-toggle')) return;
+        viewedCheckbox.checked = !viewedCheckbox.checked;
+        fileEl.classList.toggle('viewed', viewedCheckbox.checked);
+      });
 
       const diffEl = fileEl.querySelector('.diff');
       for (const dl of f.lines) {
